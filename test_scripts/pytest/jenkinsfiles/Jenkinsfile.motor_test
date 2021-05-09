@@ -19,7 +19,7 @@ pipeline {
     timeout(time: 120, unit: 'MINUTES')
   }
   environment {
-    IMAGE_NAME = "pytest_tests"
+    IMAGE_NAME = "test_Container"
     IMAGE_TAG  = "latest"
     TEST_DIRECTORY  = "motor_test"
     CASES_PATH = "test_scripts/pytest"
