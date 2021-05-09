@@ -127,8 +127,6 @@ class TestCommutationOffsetDetection:
         """
         Commutation Offset Detection procedure is run and offset is verified.
         
-        :requirements: 5, 6, 19
-
         checks the precision of commutation angle offset detection.
 
         How does the test work:
