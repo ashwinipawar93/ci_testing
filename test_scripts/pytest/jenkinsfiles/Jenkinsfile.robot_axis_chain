@@ -1,0 +1,97 @@
+@NonCPS
+def hostnames(label) {
+  def nodes = []
+  jenkins.model.Jenkins.instance.computers.each { c ->
+    if (c.node.labelString.contains(label)) {
+      nodes.add(c.node.selfLabel.name)
+    }
+  }
+  return nodes
+}
+
+def nodes = hostnames("${label}")
+def last_log_timestamp = ""
+
+pipeline {
+  agent { label "master" }
+  options {
+    timestamps()
+    timeout(time: 120, unit: 'MINUTES')
+  }
+  environment {
+    IMAGE_NAME = "pytest_tests"
+    IMAGE_TAG  = "latest"
+    TEST_DIRECTORY  = "robot_axis_chain"
+    CASES_PATH = "sw_applications/app_motion_drive/test/pytest"
+    DOC_PATH = "sw_applications/app_motion_drive/test/pytest/doc"
+    ATP_RESULT_PATH = "${DOC_PATH}/atp/_build/html/"
+    ATR_RESULT_PATH = "${DOC_PATH}/atr/_build/latex/SOMANETTestDoc.pdf"
+    XML_RESULT_PATH = "${CASES_PATH}/result.xml"
+    CONTAINER_NAME   = UUID.randomUUID().toString()
+  }
+
+  stages {
+    //FIXME this should not be here. in he current stage the cleaning is only done with this step, the one down there doenst work.
+    //This will create issues when trying to cleanup on another slave
+    stage ("Cleanup") {
+      steps {
+          sh "rm -rf ./*"
+      }
+    }
+    stage ("Running on robot") {
+      steps {
+        script {
+          for (int i = 0; i < nodes.size(); i++) {
+            node("${nodes[i]}") {
+
+              stage ('Git checkout'){
+                checkout scm
+              }
+
+              stage ('Display debug information') {
+                last_log_timestamp = test_container.debug()
+              }
+
+              stage ('Run Tests') {
+                script {
+                  TESTS_PATH  = "${env.WORKSPACE}/${CASES_PATH}/"
+                  DOCS_PATH = "${env.WORKSPACE}/${DOC_PATH}/"
+                  withCredentials([string(credentialsId: "github_token", variable: 'GITHUB_TOKEN')]) {
+                    try {
+                      test_container.run("python3 -m pytest ${TEST_DIRECTORY} --junitxml=result.xml --control_psu --generate_doc=true",\
+                                         "${TESTS_PATH}", "${CONTAINER_NAME}")
+                    } finally {
+                      try {
+                        test_container.make_doc_pdf("${DOCS_PATH}/atr", "${TEST_DIRECTORY}")
+                        test_container.make_doc_html("${DOCS_PATH}/atp")
+                        archiveArtifacts artifacts:"${XML_RESULT_PATH}, ${env.CASES_PATH}/*.png, ${env.CASES_PATH}/*.pdf, \
+                                                    ${ATP_RESULT_PATH}, ${ATR_RESULT_PATH}", fingerprint: true
+                        junit "${XML_RESULT_PATH}"
+                      }
+                      finally {
+                        test_container.stop("${CONTAINER_NAME}")
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  post {
+    failure {
+        script {
+            def attachments = [
+                [
+                  text: "JOB:${env.JOB_NAME}\nBuild URL: ${env.BUILD_URL}",
+                  color: '#ff0000'
+                ]
+            ]
+            slackSend(channel: '#gen-ci', attachments: attachments)
+        }
+    }
+  }
+}

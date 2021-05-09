@@ -1,0 +1,44 @@
+pipeline {
+  agent { label "slave" }
+  options {
+    timestamps()
+    timeout(time: 60, unit: 'MINUTES')
+  }
+  environment {
+    IMAGE_NAME = "pytest_tests"
+    IMAGE_TAG  = "latest"
+  }
+
+  stages {
+    stage ("Build test container") {
+      steps {
+        script {
+          withCredentials([string(credentialsId: "github_token", variable: "GITHUB_TOKEN")]) {
+            def DOCKERFILE_PATH = "./sw_applications/app_motion_drive/test/pytest/test_container"
+            def DOCKERFILE_NAME = "Dockerfile"
+            def args = "--tag synapticon/${IMAGE_NAME}:${IMAGE_TAG} \
+                        --file ${DOCKERFILE_PATH}/${DOCKERFILE_NAME} \
+                        --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} \
+                        --no-cache"
+
+            sh "docker build ${args} ${DOCKERFILE_PATH}"
+          }
+        }
+      }
+    }
+
+    stage ("Push test container") {
+      steps {
+        script {
+          withCredentials([[$class: 'UsernamePasswordMultiBinding',
+                              credentialsId: "dockerhub_credential",
+                              usernameVariable: 'USERNAME',
+                              passwordVariable: 'PASSWORD']]) {
+            sh "docker login --username ${USERNAME} --password ${PASSWORD}"
+            sh "docker push synapticon/${IMAGE_NAME}:${IMAGE_TAG}"
+          }
+        }
+      }
+    }
+  }
+}
