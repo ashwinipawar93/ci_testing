@@ -1,20 +1,15 @@
 """
 Commutation Offset Detection tests
 """
-__author__ = "Synapticon GmbH"
-__copyright__ = "Copyright 2019, Synapticon GmbH"
-__license__ = "Closed"
-__email__ = "support@synapticon.com"
-
 import time
 import logging
 import pytest
-import somanet_oscmd_helpers
+import oscmd_helpers
 from random import choice
 from typing import Any, Dict
 from enum import Enum, unique
-import somanet_toolbox as stb
-from somanet_profiler_helpers import ProfilePositionHandler
+import toolbox as stb
+from profiler_helpers import ProfilePositionHandler
 
 logger = logging.getLogger(__name__)
 

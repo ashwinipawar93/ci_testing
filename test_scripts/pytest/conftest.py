@@ -9,10 +9,9 @@ import os
 import logging
 import json
 import re
-# TODO: This maybe needs to be absorbed into a package (maybe bindings, maybe somanet_test_suite)
 from motion_master_wrapper import MotionMasterWrapper
-import somanet_od as sod
-import somanet_cia402_state_control as sst
+import od as sod
+import cia402_state_control as sst
 import ea_psu_controller as ea
 import utilities as ut
 import time
