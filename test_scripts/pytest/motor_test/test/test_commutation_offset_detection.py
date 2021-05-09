@@ -1,5 +1,5 @@
 """
-Commutation Offset Detection tests
+Commutation Offset Detection test
 """
 import time
 import logging
