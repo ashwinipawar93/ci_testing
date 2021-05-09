@@ -5,6 +5,8 @@ RUN apt-get update \
       libffi-dev protobuf-compiler libprotobuf-dev udev \
     && rm -rf /var/lib/apt/lists/*
 
+ENV WHEEL_DIR=/svc/wheels
+
 COPY requirements.txt /
 RUN pip3 install wheel \
   && pip3 wheel --requirement /requirements.txt --wheel-dir=${WHEEL_DIR}
